@@ -1,6 +1,6 @@
-import type { SchemaElement, Service } from '../store/schema';
+import type { TopLevelElement, Service } from '../store/schema';
 
-export function generateMermaid(elements: SchemaElement[]): string {
+export function generateMermaid(elements: TopLevelElement[]): string {
   let diagram = 'sequenceDiagram\n';
   // For each service, show a client calling each RPC method
   for (const el of elements) {

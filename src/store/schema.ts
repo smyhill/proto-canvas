@@ -49,6 +49,7 @@ export interface RPCMethod {
   clientStreaming?: boolean;
   serverStreaming?: boolean;
   comment?: string;
+  parentId?: string; // for nesting inside services
 }
 
 export interface Service {
@@ -59,7 +60,7 @@ export interface Service {
   parentId?: string; // for future extensibility
 }
 
-export type TopLevelElement = Message | Enum | Service;
+export type TopLevelElement = Message | Enum | Service | RPCMethod;
 
 export const useSchemaStore = defineStore('schema', {
   state: () => ({
@@ -74,6 +75,8 @@ export const useSchemaStore = defineStore('schema', {
           parent.messages.push(element as Message);
         } else if (parent && 'enums' in parent && elementHasType(element, 'enum')) {
           parent.enums.push(element as Enum);
+        } else if (parent && 'methods' in parent && elementHasType(element, 'rpcMethod')) {
+          parent.methods.push(element as RPCMethod);
         }
       } else {
         this.elements.push(element);
@@ -87,6 +90,9 @@ export const useSchemaStore = defineStore('schema', {
         }
         if (parent && 'enums' in parent) {
           parent.enums = parent.enums.filter(e => e.id !== id);
+        }
+        if (parent && 'methods' in parent) {
+          parent.methods = parent.methods.filter(m => m.id !== id);
         }
       } else {
         this.elements = this.elements.filter(e => e.id !== id);
@@ -108,6 +114,10 @@ export const useSchemaStore = defineStore('schema', {
             const en = searchNested(el.enums);
             if (en) return en;
           }
+          if ('methods' in el) {
+            const m = searchNested(el.methods);
+            if (m) return m;
+          }
         }
         return undefined;
       }
@@ -119,9 +129,10 @@ export const useSchemaStore = defineStore('schema', {
   },
 });
 
-function elementHasType(el: TopLevelElement, type: 'message' | 'enum' | 'service') {
+function elementHasType(el: TopLevelElement, type: 'message' | 'enum' | 'service' | 'rpcMethod') {
   if (type === 'message') return 'fields' in el && 'messages' in el && 'enums' in el;
   if (type === 'enum') return 'values' in el;
   if (type === 'service') return 'methods' in el;
+  if (type === 'rpcMethod') return 'inputType' in el && 'outputType' in el;
   return false;
 } 

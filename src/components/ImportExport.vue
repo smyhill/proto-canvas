@@ -17,13 +17,16 @@ function exportJson() {
   const data = JSON.stringify(schema.elements, null, 2);
   downloadFile(data, 'schema.json', 'application/json');
 }
+
 function exportProto() {
   // Lazy import to avoid circular deps
-  import('../utils/protoGen').then(({ generateProto3 }) => {
+  import('../utils/protoGen').then(({ generateProto3, getServiceNameForFile }) => {
     const data = generateProto3(schema.elements);
-    downloadFile(data, 'schema.proto', 'text/plain');
+    const filename = `${getServiceNameForFile(schema.elements)}.proto`;
+    downloadFile(data, filename, 'text/plain');
   });
 }
+
 function importJson(event: Event) {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
@@ -37,6 +40,7 @@ function importJson(event: Event) {
   };
   reader.readAsText(file);
 }
+
 function downloadFile(data: string, filename: string, type: string) {
   const blob = new Blob([data], { type });
   const url = URL.createObjectURL(blob);
@@ -52,9 +56,20 @@ function downloadFile(data: string, filename: string, type: string) {
 .import-export {
   display: flex;
   gap: 1rem;
-  margin: 2rem auto 0 auto;
+  margin: 2rem 2rem 2rem 2rem;
   justify-content: center;
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: calc(100% - 4rem);
 }
+
 .import-label {
   background: #42b983;
   color: #fff;
@@ -64,9 +79,11 @@ function downloadFile(data: string, filename: string, type: string) {
   font-weight: 500;
   transition: background 0.2s;
 }
+
 .import-label:hover {
   background: #369e6f;
 }
+
 button {
   background: #fff;
   border: 1px solid #42b983;
@@ -77,6 +94,7 @@ button {
   font-weight: 500;
   transition: background 0.2s, color 0.2s;
 }
+
 button:hover {
   background: #42b983;
   color: #fff;

@@ -5,11 +5,13 @@
       <button :class="{active: tab==='mermaid'}" @click="tab='mermaid'">Mermaid Diagram</button>
     </div>
     <div class="preview-content">
-      <div v-if="tab==='proto'">
+      <!-- Proto Preview (always rendered, toggled by CSS) -->
+      <div class="proto-tab" :class="{active: tab==='proto', inactive: tab!=='proto'}">
         <div ref="monacoEl" class="monaco-editor" v-show="monacoReady"></div>
         <pre v-if="!monacoReady" class="proto-preview">{{ protoCode }}</pre>
       </div>
-      <div v-else>
+      <!-- Mermaid Preview (always rendered, toggled by CSS) -->
+      <div class="mermaid-tab" :class="{active: tab==='mermaid', inactive: tab!=='mermaid'}">
         <div ref="mermaidEl" class="mermaid-svg"></div>
         <pre v-if="mermaidError" class="mermaid-preview">{{ mermaidCode }}</pre>
       </div>
@@ -41,21 +43,30 @@ const mermaidError = ref(false);
 async function mountMonaco() {
   try {
     const monaco = await import('monaco-editor');
-    monacoInstance = monaco.editor.create(monacoEl.value!, {
-      value: protoCode.value,
-      language: 'proto',
-      readOnly: true,
-      theme: 'vs',
-      fontSize: 15,
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      wordWrap: 'on',
-    });
-    monacoReady.value = true;
-    watch(protoCode, (val) => {
-      if (monacoInstance) monacoInstance.setValue(val);
-    });
-  } catch {
+    if (monacoEl.value && !monacoInstance) {
+      monacoInstance = monaco.editor.create(monacoEl.value, {
+        value: protoCode.value,
+        language: 'proto',
+        readOnly: true,
+        theme: 'vs',
+        fontSize: 14,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        lineNumbers: 'on',
+        renderLineHighlight: 'all',
+        automaticLayout: true,
+      });
+      monacoReady.value = true;
+      // Watch for changes in proto code
+      watch(protoCode, (val) => {
+        if (monacoInstance) {
+          monacoInstance.setValue(val);
+        }
+      });
+    }
+  } catch (error) {
+    console.warn('Monaco editor failed to load, falling back to text preview');
     monacoReady.value = false;
   }
 }
@@ -70,22 +81,32 @@ async function renderMermaid() {
     await mermaid.parse(mermaidCode.value);
     const { svg } = await mermaid.render('mermaid-svg', mermaidCode.value);
     if (mermaidEl.value) mermaidEl.value.innerHTML = svg;
-  } catch {
+  } catch (error) {
+    console.warn('Mermaid failed to render:', error);
     mermaidError.value = true;
   }
 }
 
 onMounted(() => {
-  if (tab.value === 'proto') mountMonaco();
-  if (tab.value === 'mermaid') nextTick(renderMermaid);
+  // Always start with proto tab
+  tab.value = 'proto';
+  mountMonaco();
+  nextTick(() => renderMermaid());
 });
+
 watch(tab, (val) => {
-  if (val === 'proto' && !monacoReady.value) mountMonaco();
-  if (val === 'mermaid') nextTick(renderMermaid);
+  // Only render mermaid on tab switch, keep monaco always mounted
+  if (val === 'mermaid') {
+    nextTick(() => renderMermaid());
+  }
 });
+
 watch(mermaidCode, () => {
-  if (tab.value === 'mermaid') nextTick(renderMermaid);
+  if (tab.value === 'mermaid') {
+    nextTick(() => renderMermaid());
+  }
 });
+
 onBeforeUnmount(() => {
   if (monacoInstance) {
     monacoInstance.dispose();
@@ -96,18 +117,28 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .live-preview {
-  margin: 2rem auto;
-  max-width: 900px;
+  margin: 2rem 2rem 2rem 2rem;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   padding: 1.5rem;
+  position: relative;
+  min-height: 400px;
+  width: calc(100% - 4rem);
 }
+
 .tabs {
   display: flex;
   gap: 1rem;
   margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 5;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
 }
+
 .tabs button {
   background: none;
   border: none;
@@ -116,37 +147,65 @@ onBeforeUnmount(() => {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: border 0.2s;
+  font-weight: 500;
 }
+
 .tabs button.active {
   border-bottom: 2px solid #42b983;
   color: #42b983;
 }
+
+.tabs button:hover {
+  color: #42b983;
+}
+
 .preview-content {
-  min-height: 180px;
+  min-height: 350px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.proto-tab, .mermaid-tab {
+  height: 100%;
+  width: 100%;
+  display: none;
+}
+.proto-tab.active, .mermaid-tab.active {
+  display: block;
 }
 .proto-preview, .mermaid-preview {
   background: #f9f9f9;
   border-radius: 6px;
   padding: 1rem;
-  font-family: 'Fira Mono', 'Consolas', monospace;
-  font-size: 1rem;
+  font-family: 'Fira Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.875rem;
   color: #333;
-  white-space: pre-wrap;
+  white-space: pre;
+  line-height: 1.5;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+  margin: 0;
 }
 .monaco-editor {
   width: 100%;
-  min-height: 220px;
-  height: 220px;
+  min-height: 350px;
+  height: 350px;
   border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 1em;
+  border: 1px solid #e2e8f0;
+  text-align: left;
 }
 .mermaid-svg {
   width: 100%;
-  min-height: 220px;
-  margin-bottom: 1em;
+  min-height: 350px;
   background: #f9f9f9;
   border-radius: 6px;
   overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style> 
