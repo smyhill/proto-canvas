@@ -1,0 +1,80 @@
+:root {
+  --color-bg: #f7f9fb;
+  --color-bg-contrast: #fff;
+  --color-text: #1a1a1a;
+  --color-accent: #2563eb;
+  --color-accent2: #10b981;
+  --color-message: #2563eb;
+  --color-enum: #f59e42;
+  --color-service: #10b981;
+  --color-border: #e5e7eb;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--color-text);
+  font-weight: 700;
+  margin-top: 0;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  padding: 0.5em 1em;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+button {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+button:hover {
+  background: var(--color-accent2);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px #2563eb22;
+}
+.card {
+  background: var(--color-bg-contrast);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.2em 1.5em;
+  margin-bottom: 1.5em;
+  border: 1px solid var(--color-border);
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
